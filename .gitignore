@@ -98,6 +98,7 @@ docs/source/supervisor
 docs/source/X-ray Absorption Fine Structure
 docs/source/Powder Diffraction
 
-# downloaded data
-*.nxs
-*.zip
+# Jupyter files
+.jupyter/
+.local/
+.jupyter-server-log.txt
