@@ -2,6 +2,8 @@
 
 ## Use this tutorial
 
+Visit https://mybinder.org/v2/gh/bluesky/tutorial-adaptive/main?urlpath=lab.
+
 ## Contribute to this tutorial
 
 ### Set up a development environment.
