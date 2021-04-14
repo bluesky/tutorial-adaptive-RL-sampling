@@ -71,7 +71,7 @@ Visit https://mybinder.org/v2/gh/bluesky/tutorial-adaptive/main?urlpath=lab.
 
 5. Be sure to read the next section about committing changes!
 
-## Committing changes.
+### Committing changes
 
 You can edit notebooks, scripts, and other files in the repository from
 within JupyterLab or using any editor. You can save changes from JupyterLab
