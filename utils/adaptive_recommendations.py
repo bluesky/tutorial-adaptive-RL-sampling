@@ -56,7 +56,7 @@ class RLRecommender(BadSeedRecommender):
         raise NotImplementedError
 
 
-if True:
+if __name__ == "__main__":
     import numpy as np
     from bluesky_adaptive.per_start import adaptive_plan
     from bluesky_adaptive.on_stop import recommender_factory
