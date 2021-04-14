@@ -4,6 +4,10 @@
 
 Visit https://mybinder.org/v2/gh/bluesky/tutorial-adaptive/main?urlpath=lab.
 
+If you experience trouble with that link, you can check to see whether Binder is
+having an outage or undergoing maintenance at
+https://mybinder.readthedocs.io/en/latest/about/status.html.
+
 ## Contribute to this tutorial
 
 ### Set up a development environment
