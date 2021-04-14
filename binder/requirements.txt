@@ -3,5 +3,6 @@ numpy==1.19.1
 jupyterlab==3.*
 tensorboard==2.2.1
 tensorforce==0.5.5
+tensorflow==2.2.0
 toolz==0.10.0
 pandas
