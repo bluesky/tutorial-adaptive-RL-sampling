@@ -101,7 +101,7 @@ nbstripout...............................................................Failed
 
 When happened here? Your attempt to commit has been blocked. The files have
 been fixed for you---clearing the outputs from your notebooks. Before trying
-again to commit, you to add those fixes to the "staged" changes.
+again to commit, you must add those fixes to the "staged" changes.
 
 ```
 # Stage again to include the fixes that we just applied (the cleared output areas).
