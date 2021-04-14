@@ -70,14 +70,30 @@ if True:
     def do_the_thing(det, key_of_goodness, sample_positions, max_shots=25):
         sample_positions = np.array(sample_positions)
 
+        # we know that at the reccomender level we do not want to know anything
+        # about the real motor positions.  This function converts from lab
+        # space to notional "enviroment" space
         def motor_to_sample_indx(pos):
             pos = pos.compute().data
             return np.argmin(np.abs(sample_positions - pos))
 
+        # Converesly, at the beamline we have to work in real coordinates, this function
+        # converts from the "enviroment" coordinate system to
         def sample_indx_to_motor(indx):
             return sample_positions[int(indx)]
 
+        # create the (pre-trained) reccomender.
         recommender = BadSeedRecommender(num_samples=len(sample_positions))
+        # set up the machinery to:
+        #  - unpack and reduce the raw data
+        #  - pass the reduced data into the recommendation engine (tell)
+        #  - get the recommended next step back from the recommendation engine (ask)
+        #  - translate back to physical units
+        #
+        #  The two return values are:
+        #
+        #   cb : where the collected data should be sent
+        #   queue : where the plan should query to get the next step
         cb, queue = recommender_factory(
             adaptive_obj=recommender,
             independent_keys=[lambda motor: motor_to_sample_indx(motor)],
@@ -86,8 +102,21 @@ if True:
             target_transforms={"motor": sample_indx_to_motor},
             max_count=max_shots,
         )
+
+        # The adaptive plan takes in:
+        #
+        #   dets : the detectors to be read
+        #   first_point : where to start the scan
+        #   to_recommender : the call back from above
+        #   from_recommender : the queue from above
+        #
+        #  This takes care of running data collection, moving as instructed by the
+        #  recommendation.
         yield from adaptive_plan(
-            [det], {hw.motor: 1}, to_recommender=cb, from_recommender=queue
+            dets=[det],
+            first_point={hw.motor: 1},
+            to_recommender=cb,
+            from_recommender=queue,
         )
 
     RE = RunEngine()
