@@ -47,6 +47,10 @@ Visit https://mybinder.org/v2/gh/bluesky/tutorial-adaptive/main?urlpath=lab.
    pre-commit install
    ```
 
+   Notice that we do *not* have to install `binder/requirements.txt` or any
+   other requirements for the tutorial itself. That will be done inside
+   a Docker container automatically in the next step.
+
 3. Build and start this tutorial container.
 
    ```
