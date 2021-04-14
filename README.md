@@ -6,7 +6,7 @@ Visit https://mybinder.org/v2/gh/bluesky/tutorial-adaptive/main?urlpath=lab.
 
 ## Contribute to this tutorial
 
-### Set up a development environment.
+### Set up a development environment
 
 1. Install [Docker](https://docs.docker.com/get-docker/) on your system. (For
    Podman fans: It must be actual Docker, not Podman, because the Docker Python
@@ -71,7 +71,7 @@ Visit https://mybinder.org/v2/gh/bluesky/tutorial-adaptive/main?urlpath=lab.
 
 5. Be sure to read the next section about committing changes!
 
-### Committing changes
+### Commit changes
 
 You can edit notebooks, scripts, and other files in the repository from
 within JupyterLab or using any editor. You can save changes from JupyterLab
@@ -117,3 +117,17 @@ nbstripout...............................................................Passed
 For details on the tools involved in this process see
 [nbstripout](https://github.com/kynan/nbstripout) and
 [pre-commit](https://pre-commit.com/).
+
+### Specify software requirements
+
+Edit ``binder/requirements.txt`` to modify the software environment that
+JupyterLab runs in. There are other configuration files available to support
+for system (`apt`) and conda packages. See
+https://repo2docker.readthedocs.io/en/stable/configuration/index.html.
+
+After making changes to the configuration, you will need to stop the
+Jupyter server (Ctrl+C twice, as usual) and start it again. As before:
+
+```
+jupyter-repo2docker --editable .
+```
