@@ -2,7 +2,7 @@
 
 ## Use this tutorial
 
-Visit https://mybinder.org/v2/gh/bluesky/tutorial-adaptive/main?urlpath=lab.
+Visit https://mybinder.org/v2/gh/bluesky/tutorial-adaptive-RL-sampling/main?urlpath=lab.
 
 If you experience trouble with that link, you can check to see whether Binder is
 having an outage or undergoing maintenance at
@@ -28,8 +28,8 @@ https://mybinder.readthedocs.io/en/latest/about/status.html.
 2. Clone this project and `cd` into the project root.
 
    ```
-   git clone https://github.com/bluesky/tutorial-adaptive
-   cd tutorial-adaptive
+   git clone https://github.com/bluesky/tutorial-adaptive-RL-sampling
+   cd tutorial-adaptive-RL-sampling
    ```
 
 2. Create a software environment for running and saving changes to the
@@ -38,8 +38,8 @@ https://mybinder.readthedocs.io/en/latest/about/status.html.
 
    ```
    # Create a new environment with conda...
-   conda create -n tutorial-adaptive python=3.8
-   conda activate tutorial-adaptive
+   conda create -n tutorial-adaptive-RL-sampling python=3.8
+   conda activate tutorial-adaptive-RL-sampling
    # or with Python's built-in venv...
    python -m venv .venv/
    source .venv/bin/activate

@@ -19,4 +19,4 @@ jobs:
         # Also push built image to DockerHub for use by our JupyterHub deployments.
         DOCKER_USERNAME: nsls2damaservice
         DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
-        IMAGE_NAME: nsls2/tutorial-adaptive
+        IMAGE_NAME: nsls2/tutorial-adaptive-RL-sampling
