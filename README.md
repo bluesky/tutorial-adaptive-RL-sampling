@@ -72,10 +72,6 @@ https://mybinder.readthedocs.io/en/latest/about/status.html.
    in the output. When you are done, you can use Ctrl+C to stop the Jupyter server, as usual.
 
 4. Navigate your Internet browser to the URL displayed by `jupyter-repo2docker`'s output.
-   You will see the "Classic" notebook by default. Edit the URL, replacing
-   `/tree` with `/lab`. You will now see JupyterLab. (This is where users
-   will land by default. We only have to do the URL-mugnging business when
-   we are *editing* the tutorial.)
 
 5. Be sure to read the next section about committing changes!
 
