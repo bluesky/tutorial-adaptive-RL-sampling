@@ -22,7 +22,7 @@ jobs:
       run: |
         set -vxeuo pipefail
         python -m pip install -r binder/requirements-dev.txt
-        python -m pip install list
+        python -m pip list
 
     - name: Execute notebooks with papermill.
       shell: bash -l {0}
