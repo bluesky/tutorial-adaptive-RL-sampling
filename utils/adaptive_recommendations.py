@@ -1,7 +1,6 @@
 from bluesky_adaptive.recommendations import NoRecommendation
 from tf_agent import load_agent
 
-
 class NaiveAgent:
     """A simple naive agent that cycles samples sequentially in environment space"""
 
@@ -19,9 +18,17 @@ class NaiveAgent:
         """Continuous cycling of sample indicies regardless of goodness (y)"""
         return (x + 1) % self.num_samples
 
-
 class RLAgent:
     def __init__(self, num_samples, path):
+        """
+
+        Parameters
+        ----------
+        num_samples : int
+            Total number of samples in the "environment" space
+        path : Path, str
+            Output path of agent to load from
+        """
         self.num_samples = num_samples
         self.agent = load_agent(path)
 
@@ -33,10 +40,21 @@ class RLAgent:
         return y
 
     def __call__(self, x, y):
+        """
+        Cycles continuously according to RL recommender
+        Parameters
+        ----------
+        x : int
+            "Environment" space position
+        y : int
+            degree of badness
+
+        Returns
+        -------
+
+        """
         badness = self.useful_counts_remaining(y)
-        change = self.agent.act(
-            [float(bool(badness)), float(badness)], independent=True
-        )
+        change = self.agent.act([float(bool(badness)), float(badness)], independent=True)
         return (x + change) % self.num_samples
 
 
