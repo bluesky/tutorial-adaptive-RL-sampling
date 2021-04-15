@@ -1,9 +1,22 @@
 from bluesky_adaptive.recommendations import NoRecommendation
 
 
-def naive_agent(x, y):
-    """A simple naive agent"""
-    return x + 1
+class NaiveAgent:
+    """A simple naive agent that cycles samples sequentially in environment space"""
+
+    def __init__(self, num_samples):
+        """
+
+        Parameters
+        ----------
+        num_samples : int
+            Total number of samples in the "environment" space
+        """
+        self.num_samples = num_samples
+
+    def __call__(self, x, y):
+        """Continuous cycling of sample indicies regardless of goodness (y)"""
+        return (x + 1) % self.num_samples
 
 
 class BadSeedRecommender:
@@ -19,7 +32,7 @@ class BadSeedRecommender:
         self.agent = self.build_agent(*args, **kwargs)
 
     def build_agent(self, *args, **kwargs):
-        return naive_agent
+        return NaiveAgent(self.num_samples)
 
     def tell(self, x, y):
         """Tell the recommnder about something new"""
