@@ -1,4 +1,5 @@
 from bluesky_adaptive.recommendations import NoRecommendation
+from tf_agent import load_agent
 
 
 class NaiveAgent:
@@ -17,6 +18,26 @@ class NaiveAgent:
     def __call__(self, x, y):
         """Continuous cycling of sample indicies regardless of goodness (y)"""
         return (x + 1) % self.num_samples
+
+
+class RLAgent:
+    def __init__(self, num_samples, path):
+        self.num_samples = num_samples
+        self.agent = load_agent(path)
+
+    def useful_counts_remaining(self, y):
+        """
+        This is the function that will need to be adjusted outside the simulator to convert
+        the dependent variable into a useful counts remaining.
+        """
+        return y
+
+    def __call__(self, x, y):
+        badness = self.useful_counts_remaining(y)
+        change = self.agent.act(
+            [float(bool(badness)), float(badness)], independent=True
+        )
+        return (x + change) % self.num_samples
 
 
 class BadSeedRecommender:
@@ -53,7 +74,8 @@ class BadSeedRecommender:
 
 
 class RLRecommender(BadSeedRecommender):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, path, *args, **kwargs):
+        self.path = path
         super().__init__(*args, **kwargs)
 
     def build_agent(self, *args, **kwargs):
@@ -66,7 +88,7 @@ class RLRecommender(BadSeedRecommender):
            f(x, y) -> next_point
 
         """
-        raise NotImplementedError
+        return RLAgent(self.num_samples, self.path)
 
 
 if __name__ == "__main__":
@@ -80,7 +102,7 @@ if __name__ == "__main__":
     hw = hw()
     bec = BestEffortCallback()
 
-    def do_the_thing(det, key_of_goodness, sample_positions, max_shots=25):
+    def do_the_thing(det, key_of_badness, sample_positions, max_shots=25):
         sample_positions = np.array(sample_positions)
 
         # we know that at the reccomender level we do not want to know anything
@@ -110,7 +132,7 @@ if __name__ == "__main__":
         cb, queue = recommender_factory(
             adaptive_obj=recommender,
             independent_keys=[lambda motor: motor_to_sample_indx(motor)],
-            dependent_keys=[key_of_goodness],
+            dependent_keys=[key_of_badness],
             target_keys=["motor"],
             target_transforms={"motor": sample_indx_to_motor},
             max_count=max_shots,
