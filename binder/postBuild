@@ -1,3 +1,6 @@
 #!/bin/bash
 
 MPLBACKEND=Agg python -c "import matplotlib.pyplot"  # Build font cache.
+
+# Ensure that the build is up to date.
+jupyter lab build
