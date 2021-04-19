@@ -2,8 +2,6 @@ from collections import Counter
 
 from bluesky_adaptive.recommendations import NoRecommendation
 
-# from tf_agent import load_agent
-
 
 class NaiveAgent:
     """A simple naive agent that cycles samples sequentially in environment space"""
@@ -20,7 +18,7 @@ class NaiveAgent:
 
     def __call__(self, x, y):
         """Continuous cycling of sample indicies regardless of goodness (y)"""
-        print(f"called {x}, {y}")
+        # print(f"called {x}, {y}")
         if y > 0:
             return x
         else:
@@ -38,6 +36,8 @@ class RLAgent:
         path : Path, str
             Output path of agent to load from
         """
+        from tf_agent import load_agent
+
         self.num_samples = num_samples
         self.agent = load_agent(path)
 
@@ -87,7 +87,7 @@ class BadSeedRecommender:
 
     def tell(self, x, y):
         """Tell the recommnder about something new"""
-        print(f"in tell {x}, {y}")
+        # print(f"in tell {x}, {y}")
         self.seen_count[x] += 1
         (snr,) = y
         if snr > 500:
@@ -103,7 +103,6 @@ class BadSeedRecommender:
 
     def ask(self, n, tell_pending=True):
         """Ask the recommender for a new command"""
-        print("in ask")
         if n != 1:
             raise NotImplementedError
         if self.next_point is None or self.next_point >= self.num_samples:
@@ -130,72 +129,83 @@ class RLRecommender(BadSeedRecommender):
         return RLAgent(self.num_samples, self.path)
 
 
-if True:
+def bad_seed_plan(
+    sample_selector, det, snr, sample_positions, reccomender_class, max_shots=25
+):
+    sample_positions = np.array(sample_positions)
+
+    # we know that at the reccomender level we do not want to know anything
+    # about the real motor positions.  This function converts from lab
+    # space to notional "enviroment" space
+    def motor_to_sample_indx(pos):
+        # print("in convert forward")
+        pos = pos.compute().data
+        return np.argmin(np.abs(sample_positions - pos))
+
+    # Converesly, at the beamline we have to work in real coordinates, this function
+    # converts from the "enviroment" coordinate system to
+    def sample_indx_to_motor(indx):
+        # print("in convert back")
+        return sample_positions[int(indx)]
+
+    # create the (pre-trained) reccomender.
+    recommender = reccomender_class(num_samples=len(sample_positions))
+    # set up the machinery to:
+    #  - unpack and reduce the raw data
+    #  - pass the reduced data into the recommendation engine (tell)
+    #  - get the recommended next step back from the recommendation engine (ask)
+    #  - translate back to physical units
+    #
+    #  The two return values are:
+    #
+    #   cb : where the collected data should be sent
+    #   queue : where the plan should query to get the next step
+    cb, queue = recommender_factory(
+        adaptive_obj=recommender,
+        independent_keys=[
+            lambda sample_selector: motor_to_sample_indx(sample_selector)
+        ],
+        dependent_keys=[snr],
+        target_keys=[sample_selector.name],
+        target_transforms={sample_selector.name: sample_indx_to_motor},
+        max_count=max_shots,
+    )
+
+    # The adaptive plan takes in:
+    #
+    #   dets : the detectors to be read
+    #   first_point : where to start the scan
+    #   to_recommender : the call back from above
+    #   from_recommender : the queue from above
+    #
+    #  This takes care of running data collection, moving as instructed by the
+    #  recommendation.
+    yield from adaptive_plan(
+        dets=[detector],
+        first_point={sample_selector: 1},
+        to_recommender=cb,
+        from_recommender=queue,
+    )
+
+
+if __name__ == "__main__":
     import numpy as np
     from bluesky_adaptive.per_start import adaptive_plan
     from bluesky_adaptive.on_stop import recommender_factory
     from bluesky.callbacks.best_effort import BestEffortCallback
     from bluesky import RunEngine
-    from ophyd.sim import hw
+    from simulated_hardware import sample_selector, detector
 
-    hw = hw()
     bec = BestEffortCallback()
 
-    def do_the_thing(det, key_of_badness, sample_positions, max_shots=25):
-        sample_positions = np.array(sample_positions)
-
-        # we know that at the reccomender level we do not want to know anything
-        # about the real motor positions.  This function converts from lab
-        # space to notional "enviroment" space
-        def motor_to_sample_indx(pos):
-            print("in convert forward")
-            pos = pos.compute().data
-            return np.argmin(np.abs(sample_positions - pos))
-
-        # Converesly, at the beamline we have to work in real coordinates, this function
-        # converts from the "enviroment" coordinate system to
-        def sample_indx_to_motor(indx):
-            print("in convert back")
-            return sample_positions[int(indx)]
-
-        # create the (pre-trained) reccomender.
-        recommender = BadSeedRecommender(num_samples=len(sample_positions))
-        # set up the machinery to:
-        #  - unpack and reduce the raw data
-        #  - pass the reduced data into the recommendation engine (tell)
-        #  - get the recommended next step back from the recommendation engine (ask)
-        #  - translate back to physical units
-        #
-        #  The two return values are:
-        #
-        #   cb : where the collected data should be sent
-        #   queue : where the plan should query to get the next step
-        cb, queue = recommender_factory(
-            adaptive_obj=recommender,
-            independent_keys=[
-                lambda sample_selector: motor_to_sample_indx(sample_selector)
-            ],
-            dependent_keys=[key_of_badness],
-            target_keys=["sample_selector"],
-            target_transforms={"sample_selector": sample_indx_to_motor},
-            max_count=max_shots,
-        )
-
-        # The adaptive plan takes in:
-        #
-        #   dets : the detectors to be read
-        #   first_point : where to start the scan
-        #   to_recommender : the call back from above
-        #   from_recommender : the queue from above
-        #
-        #  This takes care of running data collection, moving as instructed by the
-        #  recommendation.
-        yield from adaptive_plan(
-            dets=[detector],
-            first_point={sample_selector: 1},
-            to_recommender=cb,
-            from_recommender=queue,
-        )
-
     RE = RunEngine()
-    RE(do_the_thing(detector, "detector_signal_to_noise", list(range(9))), bec)
+    RE(
+        bad_seed_plan(
+            sample_selector,
+            detector,
+            "detector_signal_to_noise",
+            list(range(9)),
+            BadSeedRecommender,
+        ),
+        bec,
+    )
