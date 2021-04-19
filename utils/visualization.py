@@ -41,12 +41,12 @@ class JupyterFigure(JupyterFigure_):
         _initialize_mpl()
         widgets.HBox.__init__(self)
         self.model = model
-        self.figure = matplotlib.figure.Figure()
+        self.figure = matplotlib.figure.Figure(constrained_layout=True)
         # TODO Let Figure give different options to subplots here,
         # but verify that number of axes created matches the number of axes
         # specified.
         self.axes_list = list(
-            self.figure.subplots(3, 3, squeeze=False, constrained_layout=True).ravel()
+            self.figure.subplots(3, 3, squeeze=False).ravel()
         )
         self.figure.suptitle(model.title)
         self._axes = {}
