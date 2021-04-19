@@ -3,6 +3,48 @@ from collections import Counter
 from bluesky_adaptive.recommendations import NoRecommendation
 
 
+class BadSeedRecommender:
+    """
+    Framework for recommendations from badseed
+    This should be a one-in-one-out recommender.
+    """
+
+    def __init__(self, *args, num_samples, **kwargs):
+        """Load the model, set up the necessary bits"""
+        self.next_point = None
+        self.num_samples = num_samples
+        self.seen_count = Counter()
+        self.agent = self.build_agent(*args, **kwargs)
+
+    def build_agent(self, *args, **kwargs):
+        return NaiveAgent(self.num_samples)
+
+    def tell(self, x, y):
+        """Tell the recommnder about something new"""
+        # print(f"in tell {x}, {y}")
+        self.seen_count[x] += 1
+        (snr,) = y
+        if snr > 500:
+            target = 10
+        else:
+            target = 1
+
+        self.next_point = self.agent(x, max(target - self.seen_count[x], 0))
+
+    def tell_many(self, xs, ys):
+        for x, y in zip(xs, ys):
+            self.tell(x, y)
+
+    def ask(self, n, tell_pending=True):
+        """Ask the recommender for a new command"""
+        if n != 1:
+            raise NotImplementedError
+        if self.next_point is None or self.next_point >= self.num_samples:
+            raise NoRecommendation
+
+        return (self.next_point,)
+
+
 class NaiveAgent:
     """A simple naive agent that cycles samples sequentially in environment space"""
 
@@ -23,6 +65,24 @@ class NaiveAgent:
             return x
         else:
             return (x + 1) % self.num_samples
+
+
+class RLRecommender(BadSeedRecommender):
+    def __init__(self, path, *args, **kwargs):
+        self.path = path
+        super().__init__(*args, **kwargs)
+
+    def build_agent(self, *args, **kwargs):
+        """Function to construct the RL agent from save points.
+
+        Returns
+        -------
+        agent : Callable[float, float] -> int
+
+           f(x, y) -> next_point
+
+        """
+        return RLAgent(self.num_samples, self.path)
 
 
 class RLAgent:
@@ -67,66 +127,6 @@ class RLAgent:
             [float(bool(badness)), float(badness)], independent=True
         )
         return (x + change) % self.num_samples
-
-
-class BadSeedRecommender:
-    """
-    Framework for recommendations from badseed
-    This should be a one-in-one-out recommender.
-    """
-
-    def __init__(self, *args, num_samples, **kwargs):
-        """Load the model, set up the necessary bits"""
-        self.next_point = None
-        self.num_samples = num_samples
-        self.seen_count = Counter()
-        self.agent = self.build_agent(*args, **kwargs)
-
-    def build_agent(self, *args, **kwargs):
-        return NaiveAgent(self.num_samples)
-
-    def tell(self, x, y):
-        """Tell the recommnder about something new"""
-        # print(f"in tell {x}, {y}")
-        self.seen_count[x] += 1
-        (snr,) = y
-        if snr > 500:
-            target = 10
-        else:
-            target = 1
-
-        self.next_point = self.agent(x, max(target - self.seen_count[x], 0))
-
-    def tell_many(self, xs, ys):
-        for x, y in zip(xs, ys):
-            self.tell(x, y)
-
-    def ask(self, n, tell_pending=True):
-        """Ask the recommender for a new command"""
-        if n != 1:
-            raise NotImplementedError
-        if self.next_point is None or self.next_point >= self.num_samples:
-            raise NoRecommendation
-
-        return (self.next_point,)
-
-
-class RLRecommender(BadSeedRecommender):
-    def __init__(self, path, *args, **kwargs):
-        self.path = path
-        super().__init__(*args, **kwargs)
-
-    def build_agent(self, *args, **kwargs):
-        """Function to construct the RL agent from save points.
-
-        Returns
-        -------
-        agent : Callable[float, float] -> int
-
-           f(x, y) -> next_point
-
-        """
-        return RLAgent(self.num_samples, self.path)
 
 
 def bad_seed_plan(
