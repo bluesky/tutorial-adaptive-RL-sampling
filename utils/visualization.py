@@ -1,7 +1,11 @@
 import numpy
+import functools
 
-
+from bluesky_widgets.utils.dict_view import DictView
 from bluesky_widgets.models.plot_builders import Images, call_or_eval
+from bluesky_widgets.models.plot_specs import ArtistSpec
+from bluesky_widgets.models.plot_specs import Axes
+from bluesky_widgets.models.utils import RunManager
 from bluesky_widgets.jupyter.figures import (
     widgets,
     _initialize_mpl,
@@ -9,9 +13,68 @@ from bluesky_widgets.jupyter.figures import (
     JupyterAxes,
     JupyterFigure as JupyterFigure_,
     ipympl,
-    ipympl,
     Figure,
 )
+
+from bluesky_widgets._matplotlib_axes import MatplotlibAxes as _MatplotlibAxes
+
+
+class Annotation(ArtistSpec):
+    "Describes an image (both data and style)"
+
+
+class Label:
+    def __init__(
+        self,
+        field,
+        *,
+        max_runs=1,
+        label_maker=None,
+        needs_streams=("primary",),
+        namespace=None,
+        axes=None,
+    ):
+        super().__init__()
+        self._field = field
+        self._namespace = namespace
+        if axes is None:
+            axes = Axes()
+            figure = Figure((axes,), title="")
+        else:
+            figure = axes.figure
+        self.axes = axes
+        self.figure = figure
+        # If the Axes' figure is not yet set, listen for it to be set.
+        if figure is None:
+
+            def set_figure(event):
+                self.figure = event.value
+                # This occurs at most once, so we can now stop listening.
+                self.axes.events.figure.disconnect(set_figure)
+
+            self.axes.events.figure.connect(set_figure)
+
+        self._run_manager = RunManager(max_runs, needs_streams)
+        self._run_manager.events.run_ready.connect(self._add_label)
+        self.add_run = self._run_manager.add_run
+        self.discard_run = self._run_manager.discard_run
+
+    def _add_label(self, event):
+        run = event.run
+        func = functools.partial(self._transform, field=self.field)
+        image = Annotation.from_run(func, run, label=self.field)
+        self._run_manager.track_artist(image, [run])
+        self.axes.artists.append(image)
+        self.axes.title = self._label_maaker(run, self.field)
+
+    def _transform(self, run, field):
+        img = call_or_eval({"array": field}, run, self.needs_streams, self.namespace)
+        count, *_ = img.shape
+        return {"txt": f"Number Exposed {count}"}
+
+    @property
+    def namespace(self):
+        return DictView(self._namespace or {})
 
 
 class SummedImages(Images):
@@ -73,3 +136,26 @@ class JupyterFigure(JupyterFigure_):
 
         # The Figure model does not currently allow axes to be added or
         # removed, so we do not need to handle changes in model.axes.
+
+
+class MatplotlibAxes(_MatplotlibAxes):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.type_map[Annotation] = self._construct_annotation
+
+    def _construct_annotation(self, *, txt, label, style):
+        artist = self.axes.annotate(
+            txt,
+            (0, 0),
+            xycoord="axes fraction",
+            xytext=(2, 2),
+            textcoords="offset points",
+            label=label,
+            **style,
+        )
+
+        def update(*, txt):
+            artist.set_text(txt)
+            self.draw_idle()
+
+        return artist, update
