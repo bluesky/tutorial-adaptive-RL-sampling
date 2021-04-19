@@ -1,5 +1,9 @@
+from collections import Counter
+
 from bluesky_adaptive.recommendations import NoRecommendation
-from tf_agent import load_agent
+
+# from tf_agent import load_agent
+
 
 class NaiveAgent:
     """A simple naive agent that cycles samples sequentially in environment space"""
@@ -16,7 +20,12 @@ class NaiveAgent:
 
     def __call__(self, x, y):
         """Continuous cycling of sample indicies regardless of goodness (y)"""
-        return (x + 1) % self.num_samples
+        print(f"called {x}, {y}")
+        if y > 0:
+            return x
+        else:
+            return (x + 1) % self.num_samples
+
 
 class RLAgent:
     def __init__(self, num_samples, path):
@@ -54,7 +63,9 @@ class RLAgent:
 
         """
         badness = self.useful_counts_remaining(y)
-        change = self.agent.act([float(bool(badness)), float(badness)], independent=True)
+        change = self.agent.act(
+            [float(bool(badness)), float(badness)], independent=True
+        )
         return (x + change) % self.num_samples
 
 
@@ -68,6 +79,7 @@ class BadSeedRecommender:
         """Load the model, set up the necessary bits"""
         self.next_point = None
         self.num_samples = num_samples
+        self.seen_count = Counter()
         self.agent = self.build_agent(*args, **kwargs)
 
     def build_agent(self, *args, **kwargs):
@@ -75,7 +87,15 @@ class BadSeedRecommender:
 
     def tell(self, x, y):
         """Tell the recommnder about something new"""
-        self.next_point = self.agent(x, y)
+        print(f"in tell {x}, {y}")
+        self.seen_count[x] += 1
+        (snr,) = y
+        if snr > 500:
+            target = 10
+        else:
+            target = 1
+
+        self.next_point = self.agent(x, max(target - self.seen_count[x], 0))
 
     def tell_many(self, xs, ys):
         for x, y in zip(xs, ys):
@@ -83,6 +103,7 @@ class BadSeedRecommender:
 
     def ask(self, n, tell_pending=True):
         """Ask the recommender for a new command"""
+        print("in ask")
         if n != 1:
             raise NotImplementedError
         if self.next_point is None or self.next_point >= self.num_samples:
@@ -109,7 +130,7 @@ class RLRecommender(BadSeedRecommender):
         return RLAgent(self.num_samples, self.path)
 
 
-if __name__ == "__main__":
+if True:
     import numpy as np
     from bluesky_adaptive.per_start import adaptive_plan
     from bluesky_adaptive.on_stop import recommender_factory
@@ -127,12 +148,14 @@ if __name__ == "__main__":
         # about the real motor positions.  This function converts from lab
         # space to notional "enviroment" space
         def motor_to_sample_indx(pos):
+            print("in convert forward")
             pos = pos.compute().data
             return np.argmin(np.abs(sample_positions - pos))
 
         # Converesly, at the beamline we have to work in real coordinates, this function
         # converts from the "enviroment" coordinate system to
         def sample_indx_to_motor(indx):
+            print("in convert back")
             return sample_positions[int(indx)]
 
         # create the (pre-trained) reccomender.
@@ -149,10 +172,12 @@ if __name__ == "__main__":
         #   queue : where the plan should query to get the next step
         cb, queue = recommender_factory(
             adaptive_obj=recommender,
-            independent_keys=[lambda motor: motor_to_sample_indx(motor)],
+            independent_keys=[
+                lambda sample_selector: motor_to_sample_indx(sample_selector)
+            ],
             dependent_keys=[key_of_badness],
-            target_keys=["motor"],
-            target_transforms={"motor": sample_indx_to_motor},
+            target_keys=["sample_selector"],
+            target_transforms={"sample_selector": sample_indx_to_motor},
             max_count=max_shots,
         )
 
@@ -166,11 +191,11 @@ if __name__ == "__main__":
         #  This takes care of running data collection, moving as instructed by the
         #  recommendation.
         yield from adaptive_plan(
-            dets=[det],
-            first_point={hw.motor: 1},
+            dets=[detector],
+            first_point={sample_selector: 1},
             to_recommender=cb,
             from_recommender=queue,
         )
 
     RE = RunEngine()
-    RE(do_the_thing(hw.det, "int(motor % 2)", [0.5, 1, 1.25, 2, 3]), bec)
+    RE(do_the_thing(detector, "detector_signal_to_noise", list(range(9))), bec)
