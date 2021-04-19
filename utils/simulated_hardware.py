@@ -30,7 +30,7 @@ class DiffractionDetector(Device):
 
     def trigger(self):
         "Generate a simulated reading with noise for the current sample."
-        sample_number = sample_selector.value
+        sample_number = sample_selector.get()
         arr, snr = generate_measured_image(sample_number)
         # Update the internal signal with a simulated image.
         self.image.set(arr)
