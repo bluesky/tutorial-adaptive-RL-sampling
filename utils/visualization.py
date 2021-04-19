@@ -1,9 +1,20 @@
-from bluesky_widgets.models.plot_builders import Images, call_or_eval
 import numpy
 
 
-class SummedImages(Images):
+from bluesky_widgets.models.plot_builders import Images, call_or_eval
+from bluesky_widgets.jupyter.figures import (
+    widgets,
+    _initialize_mpl,
+    matplotlib,
+    JupyterAxes,
+    JupyterFigure as JupyterFigure_,
+    ipympl,
+    ipympl,
+    Figure,
+)
 
+
+class SummedImages(Images):
     def _transform(self, run, field):
         result = call_or_eval({"array": field}, run, self.needs_streams, self.namespace)
         # If the data is more than 2D, take the middle slice from the leading
@@ -19,9 +30,7 @@ class SummedImages(Images):
             min_ = numpy.min(mean)
             result["array"] = mean / (max_ - min_)
         return result
-    
-    
-from bluesky_widgets.jupyter.figures import widgets, _initialize_mpl, matplotlib, JupyterAxes, JupyterFigure as JupyterFigure_, ipympl, ipympl, Figure
+
 
 class JupyterFigure(JupyterFigure_):
     """
@@ -36,9 +45,7 @@ class JupyterFigure(JupyterFigure_):
         # TODO Let Figure give different options to subplots here,
         # but verify that number of axes created matches the number of axes
         # specified.
-        self.axes_list = list(
-            self.figure.subplots(3, 3, squeeze=False).ravel()
-        )
+        self.axes_list = list(self.figure.subplots(3, 3, squeeze=False).ravel())
         self.figure.suptitle(model.title)
         self._axes = {}
         for axes_spec, axes in zip(model.axes, self.axes_list):
@@ -64,5 +71,3 @@ class JupyterFigure(JupyterFigure_):
 
         # The Figure model does not currently allow axes to be added or
         # removed, so we do not need to handle changes in model.axes.
-    
-    
