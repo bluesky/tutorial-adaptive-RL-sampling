@@ -1,3 +1,4 @@
+import random
 import numpy as np
 
 
@@ -37,14 +38,14 @@ def gaussian(x, c=0, sig=1, amp=None):
         return amp * np.exp(-np.power((x - c) / sig, 2.0) / 2)
 
 
-def generate_flat_field(shape):
-    num_bands = shape[0] // 20 + 1
-    values = np.random.RandomState(0).random(num_bands) * 10
-    # Tile values into bands.
-    return np.broadcast_to(np.repeat(values, 20)[: shape[0]], shape).copy()
+# def generate_flat_field(shape):
+#     num_bands = shape[0] // 20 + 1
+#     values = np.random.RandomState(0).random(num_bands) * 10
+#     # Tile values into bands.
+#     return np.broadcast_to(np.repeat(values, 20)[: shape[0]], shape).copy()
 
 
-def generate_image(x, intensity, shape):
+def generate_ideal_image(x, intensity, shape):
     """
     Given a 1D array of intensity, generate a 2D diffraction image.
     """
@@ -54,3 +55,35 @@ def generate_image(x, intensity, shape):
     unit_r = ordinal_r / ordinal_r.max()
     r = unit_r * x.max()
     return np.interp(r, x, intensity)
+
+
+def generate_noise_image(shape, noise_level):
+    return np.random.random(shape) * noise_level
+
+# At global scope, define 9 samples that we will base this demo/tutorial on.
+
+SHAPE = (128, 128)
+x = np.linspace(0, 30, num=101)
+
+num_samples = 9
+
+intensities = []
+ideal_patterns = []
+# Decide that 3-6 of these samples are "good".
+good_seeds = np.random.choice(np.arange(9), size=random.randint(3, 6), replace=False)
+
+for _ in range(num_samples):
+    iq = make_random_peaks(x, peak_chance=0.2) * 1000.0
+    image = generate_ideal_image(x, iq, SHAPE)
+    intensities.append(iq)
+    ideal_patterns.append(image)
+
+    
+def generate_measured_image(sample_number):
+    ideal_pattern = ideal_patterns[sample_number]
+    if sample_number in good_seeds:
+        noise_level = 100  # low noise
+    else:
+        noise_level = 800  # high noise
+    
+    return ideal_pattern + generate_noise_image(ideal_pattern.shape, noise_level)
