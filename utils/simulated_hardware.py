@@ -10,6 +10,7 @@ from .generate_data import generate_measured_image, SHAPE
 
 sample_selector = Signal(value=0, name="sample_selector")
 
+
 class TimerStatus(DeviceStatus):
     """Simulate the time it takes for a detector to acquire an image."""
 
@@ -30,9 +31,10 @@ class DiffractionDetector(Device):
     def trigger(self):
         "Generate a simulated reading with noise for the current sample."
         sample_number = sample_selector.value
-        arr = generate_measured_image(sample_number)
+        arr, snr = generate_measured_image(sample_number)
         # Update the internal signal with a simulated image.
         self.image.set(arr)
+        self.signal_to_noise.set(snr)
         # Simulate the exposure and readout time.
         EXPOSURE_TIME = 2
         READOUT_TIME = 0.17

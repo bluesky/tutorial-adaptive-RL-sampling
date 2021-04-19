@@ -3,7 +3,8 @@ import numpy as np
 
 
 def make_random_peaks(
-    x, xmin=None, xmax=None, peak_chance=0.1, return_pristine_peaks=False):
+    x, xmin=None, xmax=None, peak_chance=0.1, return_pristine_peaks=False
+):
 
     # select boundaries for peaks
     if xmin is None:
@@ -60,6 +61,7 @@ def generate_ideal_image(x, intensity, shape):
 def generate_noise_image(shape, noise_level):
     return np.random.random(shape) * noise_level
 
+
 # At global scope, define 9 samples that we will base this demo/tutorial on.
 
 SHAPE = (128, 128)
@@ -78,12 +80,15 @@ for _ in range(num_samples):
     intensities.append(iq)
     ideal_patterns.append(image)
 
-    
+
 def generate_measured_image(sample_number):
     ideal_pattern = ideal_patterns[sample_number]
     if sample_number in good_seeds:
         noise_level = 100  # low noise
     else:
         noise_level = 800  # high noise
-    
-    return ideal_pattern + generate_noise_image(ideal_pattern.shape, noise_level)
+
+    return (
+        ideal_pattern + generate_noise_image(ideal_pattern.shape, noise_level),
+        noise_level,
+    )
