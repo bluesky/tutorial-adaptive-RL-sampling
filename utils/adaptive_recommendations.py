@@ -28,8 +28,10 @@ class BadSeedRecommender:
             target = 10
         else:
             target = 1
-
-        self.next_point = self.agent(x, max(target - self.seen_count[x], 0))
+        if self.seen_count[x] == 1:
+            self.next_point = (x + 1) % self.num_samples
+        else:
+            self.next_point = self.agent(x, max(target - self.seen_count[x], 0))
 
     def tell_many(self, xs, ys):
         for x, y in zip(xs, ys):
