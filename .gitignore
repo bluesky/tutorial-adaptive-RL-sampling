@@ -105,4 +105,6 @@ docs/source/Powder Diffraction
 
 .config/
 .npm/
-.viminfo
+.viminfo*
+.bash_history
+.keras/

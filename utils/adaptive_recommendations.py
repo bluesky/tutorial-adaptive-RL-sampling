@@ -107,7 +107,7 @@ class RLAgent:
         path : Path, str
             Output path of agent to load from
         """
-        from tf_agent import load_agent
+        from .tf_agent import load_agent
 
         self.num_samples = num_samples
         self.agent = load_agent(path)
