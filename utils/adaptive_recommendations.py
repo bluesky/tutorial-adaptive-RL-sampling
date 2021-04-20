@@ -268,7 +268,8 @@ if __name__ == "__main__":
     from bluesky_adaptive.on_stop import recommender_factory
     from bluesky.callbacks.best_effort import BestEffortCallback
     from bluesky import RunEngine
-    from utils.simulated_hardware import sample_selector, detector
+    from .simulated_hardware import sample_selector, detector
+    from .visualization import stream_to_figures
 
     bec = BestEffortCallback()
 
@@ -276,15 +277,15 @@ if __name__ == "__main__":
 
     RE(
         with_agent(NaiveAgent(9), max_shots=50),
-        (bec, outer_wrapper(*plt.subplots(3, 3, constrained_layout=True))),
+        (bec, stream_to_figures(*plt.subplots(3, 3, constrained_layout=True))),
     )
 
     RE(
         with_agent(CheatingAgent(9), max_shots=50),
-        (bec, outer_wrapper(*plt.subplots(3, 3, constrained_layout=True))),
+        (bec, stream_to_figures(*plt.subplots(3, 3, constrained_layout=True))),
     )
 
     RE(
         with_agent(RLAgent(9, '../tf_models/bluesky-tutorial/saved_models'), max_shots=50),
-        (bec, outer_wrapper(*plt.subplots(3, 3, constrained_layout=True))),
+        (bec, stream_to_figures(*plt.subplots(3, 3, constrained_layout=True))),
     )
