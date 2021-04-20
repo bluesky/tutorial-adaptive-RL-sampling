@@ -1,5 +1,5 @@
 bluesky
-bluesky-adaptive
+bluesky-adaptive >=0.2.0
 bluesky-widgets[jupyter]
 ipympl
 ipywidgets>=7.6.0

@@ -1,6 +1,14 @@
 from collections import Counter
 
 from bluesky_adaptive.recommendations import NoRecommendation
+from bluesky_adaptive.per_start import adaptive_plan
+from bluesky_adaptive.on_stop import recommender_factory
+
+from bluesky_widgets.utils.streaming import stream_documents_into_runs
+import matplotlib.pyplot as plt
+import numpy as np
+
+from .simulated_hardware import detector, sample_selector, SHAPE
 from .visualization import stream_to_figures
 
 
@@ -15,6 +23,7 @@ class BadSeedRecommender:
         self.next_point = None
         self.num_samples = num_samples
         self.seen_count = Counter()
+        self.seen_snr = dict()
         self.agent = agent
 
     def tell(self, x, y):
@@ -22,6 +31,7 @@ class BadSeedRecommender:
         # print(f"in tell {x}, {y}")
         self.seen_count[x] += 1
         (snr,) = y
+        self.seen_snr[x] = float(snr)
         if snr > 500:
             target = 10
         else:
@@ -97,7 +107,7 @@ class RLAgent:
         path : Path, str
             Output path of agent to load from
         """
-        from tf_agent import load_agent
+        from .tf_agent import load_agent
 
         self.num_samples = num_samples
         self.agent = load_agent(path)
@@ -253,21 +263,4 @@ def with_agent(agent, max_shots):
             agent=agent,
             max_shots=max_shots,
         )
-    )
-
-
-if __name__ == "__main__":
-    import numpy as np
-    from bluesky_adaptive.per_start import adaptive_plan
-    from bluesky_adaptive.on_stop import recommender_factory
-    from bluesky.callbacks.best_effort import BestEffortCallback
-    from bluesky import RunEngine
-    from simulated_hardware import sample_selector, detector
-
-    bec = BestEffortCallback()
-
-    RE = RunEngine()
-    RE(
-        with_agent(CheatingAgent(9), max_shots=100),
-        (bec, outer_wrapper(*plt.subplots(3, 3, constrained_layout=True))),
     )

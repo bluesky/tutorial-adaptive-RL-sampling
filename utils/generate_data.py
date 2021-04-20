@@ -72,7 +72,9 @@ num_samples = 9
 intensities = []
 ideal_patterns = []
 # Decide that 3-6 of these samples are "good".
-good_seeds = np.random.choice(np.arange(9), size=random.randint(3, 6), replace=False)
+# The first one (0) is always good and the second one (1) is always bad.
+# Some random number of additional ones, up to a total of 6, are also good.
+good_seeds = [0] + np.random.choice(np.arange(2, 9), size=random.randint(2, 5), replace=False).tolist()
 
 for _ in range(num_samples):
     iq = make_random_peaks(x, peak_chance=0.2) * 1000.0
