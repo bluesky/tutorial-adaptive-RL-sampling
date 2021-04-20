@@ -4,6 +4,7 @@ bluesky-widgets[jupyter]
 ipympl
 ipywidgets>=7.6.0
 matplotlib
+nbgitpuller
 numpy==1.19.1
 ophyd
 pandas
