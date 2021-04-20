@@ -129,7 +129,40 @@ class RLAgent:
         return (x + change) % self.num_samples
 
 
-def bad_seed_plan(sample_selector, det, snr, sample_positions, agent, max_shots=50):
+def bad_seed_plan(sample_motor, det, snr, sample_positions, agent, max_shots=50):
+    """
+    A plan for using BadSeed to optimize data acquisition at the beamline.
+
+    This plan is for solving the following problem
+
+      1. you have a linear rack of samples
+      2. they are of mixed scattering strength
+      3. you want to leave the beamline overnight and have it make
+         the most of the (limited) time!  You need to take enough shots
+         on the weak scatterers and do not want to waste time over-measuring
+         the strong scatterers.
+
+    Parameters
+    ----------
+    sample_motor : OphydObject
+        The device that controls the sample position.
+
+    det : OphydObject
+        The detector to use for data acquisition
+
+    snr : string or callable
+        How to compute the signal-to-noise of a single exposure
+
+    sample_positions : Iterable[float]
+        The positions (in lab space) of the samples
+
+    agent : Callable[int, float] -> int
+        A callable that given the sample index an the computed SNR, return
+        the sample to go to next.
+
+    max_shots : int, optional
+        The maximum number of shots the plan will take (but may exit early).
+    """
     sample_positions = np.array(sample_positions)
 
     # we know that at the reccomender level we do not want to know anything
@@ -146,7 +179,7 @@ def bad_seed_plan(sample_selector, det, snr, sample_positions, agent, max_shots=
         # print("in convert back")
         return sample_positions[int(indx)]
 
-    # create the (pre-trained) reccomender.
+    # create the recomender to wrap the agent.
     recommender = BadSeedRecommender(num_samples=len(sample_positions), agent=agent)
     # set up the machinery to:
     #  - unpack and reduce the raw data
@@ -160,12 +193,10 @@ def bad_seed_plan(sample_selector, det, snr, sample_positions, agent, max_shots=
     #   queue : where the plan should query to get the next step
     cb, queue = recommender_factory(
         adaptive_obj=recommender,
-        independent_keys=[
-            lambda sample_selector: motor_to_sample_indx(sample_selector)
-        ],
+        independent_keys=[lambda sample_selector: motor_to_sample_indx(sample_selector)],
         dependent_keys=[snr],
-        target_keys=[sample_selector.name],
-        target_transforms={sample_selector.name: sample_indx_to_motor},
+        target_keys=[sample_motor.name],
+        target_transforms={sample_motor.name: sample_indx_to_motor},
         max_count=max_shots,
     )
 
@@ -180,9 +211,47 @@ def bad_seed_plan(sample_selector, det, snr, sample_positions, agent, max_shots=
     #  recommendation.
     yield from adaptive_plan(
         dets=[detector],
-        first_point={sample_selector: 1},
+        first_point={sample_motor: 0},
         to_recommender=cb,
         from_recommender=queue,
+    )
+
+
+def with_agent(agent, max_shots):
+    """
+    A plan for using BadSeed to optimize data acquisition at the beamline.
+
+    This plan is for solving the following problem
+
+      1. you have a linear rack of samples
+      2. they are of mixed scattering strength
+      3. you want to leave the beamline overnight and have it make
+         the most of the (limited) time!  You need to take enough shots
+         on the weak scatterers and do not want to waste time over-measuring
+         the strong scatterers.
+
+    This plan bakes is what motor, detector, SNR computation, and sample
+    positions to use.  For more control see the `bad_seed_plan` above.
+
+    Parameters
+    ----------
+    agent : Callable[int, float] -> int
+        A callable that given the sample index an the computed SNR, return
+        the sample to go to next.
+
+    max_shots : int, optional
+        The maximum number of shots the plan will take (but may exit early).
+
+    """
+    return (
+        yield from bad_seed_plan(
+            sample_motor=sample_selector,
+            det=detector,
+            snr="detector_signal_to_noise",
+            sample_positions=list(range(9)),
+            agent=agent,
+            max_shots=max_shots,
+        )
     )
 
 
@@ -198,12 +267,6 @@ if __name__ == "__main__":
 
     RE = RunEngine()
     RE(
-        bad_seed_plan(
-            sample_selector,
-            detector,
-            "detector_signal_to_noise",
-            list(range(9)),
-            CheatingAgent(9),
-        ),
+        with_agent(CheatingAgent(9), max_shots=10),
         bec,
     )
