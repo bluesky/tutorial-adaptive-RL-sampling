@@ -1,4 +1,5 @@
 from collections import Counter
+import threading
 
 from bluesky_live.bluesky_run import BlueskyRun, DocumentCache
 from bluesky_widgets.utils.streaming import stream_documents_into_runs
@@ -6,6 +7,8 @@ import numpy as np
 
 from .simulated_hardware import SHAPE
 
+# This is used to keep matplotlib draws from conflicting.
+_lock = threading.Lock()
 
 def stream_to_figures(fig, axes_list, start_at=0):
     axes_list = axes_list.ravel()
@@ -39,7 +42,8 @@ def stream_to_figures(fig, axes_list, start_at=0):
 
         im.set_data(new_data)
         im.axes.set_title(f'{sample_text}{sample} N_shots: {counts[sample]}')
-        im.figure.canvas.draw()  # Intentionally not draw_idle, for Jupyter
+        with _lock:
+            im.figure.canvas.draw()  # Intentionally not draw_idle, for Jupyter
 
         
     def update_plot_on_stop(run):
