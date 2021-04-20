@@ -102,3 +102,7 @@ docs/source/Powder Diffraction
 .jupyter/
 .local/
 .jupyter-server-log.txt
+
+.config/
+.npm/
+.viminfo

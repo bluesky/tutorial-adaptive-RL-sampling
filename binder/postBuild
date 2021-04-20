@@ -2,5 +2,8 @@
 
 MPLBACKEND=Agg python -c "import matplotlib.pyplot"  # Build font cache.
 
+# This is needed until we bump to JupyterLab 3.
+jupyter labextension install @jupyter-widgets/jupyterlab-manager jupyter-matplotlib
+
 # Ensure that the build is up to date.
 jupyter lab build
