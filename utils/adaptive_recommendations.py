@@ -261,12 +261,14 @@ import matplotlib.pyplot as plt
 from collections import Counter
 from .simulated_hardware import SHAPE
 
-def outer_wrapper():
-    fig, ax_arr = plt.subplots(3, 3, constrained_layout=True)
+
+def outer_wrapper(fig, ax_arr):
     init_data = np.zeros(SHAPE)
     init_data[::2, ::2] = 1
     ims = [ax.imshow(init_data) for ax in ax_arr.ravel()]
-
+    for j, ax in enumerate(ax_arr.ravel()):
+        ax.set_title(f'S{j} N_shots: 0')
+        ax.axis('off')
     counts = Counter()
 
     def update_plot(event):
@@ -277,12 +279,18 @@ def outer_wrapper():
         img -= img.min()
         img /= img.max()
         im = ims[int(sample)]
+
         prev_count = counts[sample]
         old_data = im.get_array()
+
         new_data = (old_data * prev_count + img) / (prev_count + 1)
-        counts[sample] + 1
+
+        counts[sample] += 1
+
         im.set_data(new_data)
         im.figure.canvas.draw_idle()
+
+        im.axes.set_title(f'S{sample} N_shots: {counts[sample]}')
 
     def update_plot_on_stop(run):
         run.events.completed.connect(update_plot)
@@ -303,5 +311,5 @@ if __name__ == "__main__":
     RE = RunEngine()
     RE(
         with_agent(CheatingAgent(9), max_shots=100),
-        (bec, outer_wrapper()),
+        (bec, outer_wrapper(*plt.subplots(3, 3, constrained_layout=True))),
     )
