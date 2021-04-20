@@ -33,4 +33,4 @@ jobs:
         # The notebook output will be directed to /dev/null but if there is any
         # error execution will stop and the error will be shown in stderr (and
         # hence in the logs).
-        jupyter-repo2docker . /bin/bash -c "pip install papermill && find . -not -path "*/\.*" -name '*.ipynb' -exec papermill {} - > /dev/null \;"
+        jupyter-repo2docker . /bin/bash -c "pip install papermill && find . -not -path '*/\.*' -name '*.ipynb' -exec papermill {} - > /dev/null \;"
