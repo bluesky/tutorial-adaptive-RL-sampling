@@ -255,6 +255,41 @@ def with_agent(agent, max_shots):
     )
 
 
+from bluesky_live.bluesky_run import BlueskyRun, DocumentCache
+from bluesky_widgets.utils.streaming import stream_documents_into_runs
+import matplotlib.pyplot as plt
+from collections import Counter
+from .simulated_hardware import SHAPE
+
+def outer_wrapper():
+    fig, ax_arr = plt.subplots(3, 3, constrained_layout=True)
+    init_data = np.zeros(SHAPE)
+    init_data[::2, ::2] = 1
+    ims = [ax.imshow(init_data) for ax in ax_arr.ravel()]
+
+    counts = Counter()
+
+    def update_plot(event):
+        run = event.run
+        sample, = run.primary.read()['sample_selector']
+        sample = int(sample)
+        img = run.primary.read()['detector_image'].mean(axis=0)
+        img -= img.min()
+        img /= img.max()
+        im = ims[int(sample)]
+        prev_count = counts[sample]
+        old_data = im.get_array()
+        new_data = (old_data * prev_count + img) / (prev_count + 1)
+        counts[sample] + 1
+        im.set_data(new_data)
+        im.figure.canvas.draw_idle()
+
+    def update_plot_on_stop(run):
+        run.events.completed.connect(update_plot)
+
+    return stream_documents_into_runs(update_plot_on_stop)
+
+
 if __name__ == "__main__":
     import numpy as np
     from bluesky_adaptive.per_start import adaptive_plan
@@ -267,6 +302,6 @@ if __name__ == "__main__":
 
     RE = RunEngine()
     RE(
-        with_agent(CheatingAgent(9), max_shots=10),
-        bec,
+        with_agent(CheatingAgent(9), max_shots=100),
+        (bec, outer_wrapper()),
     )
