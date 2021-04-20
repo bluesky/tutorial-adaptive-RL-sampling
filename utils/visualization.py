@@ -22,14 +22,23 @@ def stream_to_figures(fig, axes_list, start_at=0):
         ax.axis("off")
     counts = Counter()
 
+    last_seen = None
+
     def update_plot(event):
+        nonlocal last_seen
         run = event.run
         (sample,) = run.primary.read()["sample_selector"]
         sample = int(sample)
         img = run.primary.read()["detector_image"].mean(axis=0)
         img -= img.min()
         img /= img.max()
-        im = ims[int(sample) - start_at]
+
+        if len(ims) == 1:
+            (im,) = ims
+            if sample != last_seen:
+                counts.clear()
+        else:
+            im = ims[int(sample) - start_at]
 
         prev_count = counts[sample]
         old_data = im.get_array()
@@ -40,6 +49,8 @@ def stream_to_figures(fig, axes_list, start_at=0):
 
         im.set_data(new_data)
         im.axes.set_title(f"{sample_text}{sample} N_shots: {counts[sample]}")
+
+        last_seen = sample
         fig.canvas.draw_idle()
 
     def update_plot_on_stop(run):
