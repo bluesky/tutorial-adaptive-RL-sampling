@@ -25,8 +25,10 @@ class DiffractionDetector(Device):
     image = Component(Signal, value=numpy.zeros(SHAPE))
     signal_to_noise = Component(Signal, value=0)
 
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.delay = 2  # simulated exposure time delay
 
     def trigger(self):
         "Generate a simulated reading with noise for the current sample."
@@ -35,10 +37,8 @@ class DiffractionDetector(Device):
         # Update the internal signal with a simulated image.
         self.image.set(arr)
         self.signal_to_noise.set(snr)
-        # Simulate the exposure and readout time.
-        EXPOSURE_TIME = 2
-        READOUT_TIME = 0.17
-        return TimerStatus(self, EXPOSURE_TIME + READOUT_TIME)
+        # Simulate the exposure and readout time with a tunable "delay".
+        return TimerStatus(self, self.delay)
 
     def collect_asset_docs(self):
         yield from []
