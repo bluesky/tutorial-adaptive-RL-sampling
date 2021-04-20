@@ -9,15 +9,12 @@ class BadSeedRecommender:
     This should be a one-in-one-out recommender.
     """
 
-    def __init__(self, *args, num_samples, **kwargs):
+    def __init__(self, num_samples, agent):
         """Load the model, set up the necessary bits"""
         self.next_point = None
         self.num_samples = num_samples
         self.seen_count = Counter()
-        self.agent = self.build_agent(*args, **kwargs)
-
-    def build_agent(self, *args, **kwargs):
-        return CheatingAgent(self.num_samples)
+        self.agent = agent
 
     def tell(self, x, y):
         """Tell the recommnder about something new"""
@@ -88,24 +85,6 @@ class CheatingAgent:
             return (x + 1) % self.num_samples
 
 
-class RLRecommender(BadSeedRecommender):
-    def __init__(self, path, *args, **kwargs):
-        self.path = path
-        super().__init__(*args, **kwargs)
-
-    def build_agent(self, *args, **kwargs):
-        """Function to construct the RL agent from save points.
-
-        Returns
-        -------
-        agent : Callable[float, float] -> int
-
-           f(x, y) -> next_point
-
-        """
-        return RLAgent(self.num_samples, self.path)
-
-
 class RLAgent:
     def __init__(self, num_samples, path):
         """
@@ -150,9 +129,7 @@ class RLAgent:
         return (x + change) % self.num_samples
 
 
-def bad_seed_plan(
-    sample_selector, det, snr, sample_positions, reccomender_class, max_shots=25
-):
+def bad_seed_plan(sample_selector, det, snr, sample_positions, agent, max_shots=50):
     sample_positions = np.array(sample_positions)
 
     # we know that at the reccomender level we do not want to know anything
@@ -170,7 +147,7 @@ def bad_seed_plan(
         return sample_positions[int(indx)]
 
     # create the (pre-trained) reccomender.
-    recommender = reccomender_class(num_samples=len(sample_positions))
+    recommender = BadSeedRecommender(num_samples=len(sample_positions), agent=agent)
     # set up the machinery to:
     #  - unpack and reduce the raw data
     #  - pass the reduced data into the recommendation engine (tell)
@@ -226,7 +203,7 @@ if __name__ == "__main__":
             detector,
             "detector_signal_to_noise",
             list(range(9)),
-            BadSeedRecommender,
+            CheatingAgent(9),
         ),
         bec,
     )
