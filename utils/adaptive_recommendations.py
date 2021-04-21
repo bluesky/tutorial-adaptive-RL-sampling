@@ -108,6 +108,8 @@ class RLAgent:
             Output path of agent to load from
         """
         from .tf_agent import load_agent
+        import tensorflow as tf
+        tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
         self.num_samples = num_samples
         self.agent = load_agent(path)
