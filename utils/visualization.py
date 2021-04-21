@@ -10,8 +10,14 @@ from .simulated_hardware import SHAPE
 def stream_to_figures(fig, axes_list, start_at=0):
     fig.patch.set_alpha(0.5)
     axes_list = axes_list.ravel()
-    init_data = np.zeros(SHAPE)
-    init_data[::2, ::2] = 1
+
+    section = np.zeros((8, 8))
+    section[:4, :4] = 1
+    section[4:, 4:] = 1
+    init_data = np.tile(section, (1 + SHAPE[0] // 8, 1 + SHAPE[1] // 8))[
+        : SHAPE[0], : SHAPE[1]
+    ]
+
     ims = [ax.imshow(init_data) for ax in axes_list]
     if len(axes_list) > 1:
         sample_text = "S"  # abbreviate for space
